@@ -77,23 +77,31 @@ func extractWords(quit <-chan struct{}, pages <-chan string) <-chan string {
 	return words
 }
 
-type wordCount struct {
-	word  string
-	count int
-}
+func longestWords(quit <-chan struct{}, words <-chan string) <-chan string {
+	longWords := make(chan string)
+	go func() {
+		defer close(longWords)
+		uniqueWordsMap := make(map[string]bool)
+		uniqueWords := make([]string, 0)
+		moreData, word := true, ""
+		for moreData {
+			select {
+			case word, moreData = <-words:
+				if moreData && !uniqueWordsMap[word] {
+					uniqueWordsMap[word] = true
+					uniqueWords = append(uniqueWords, word)
+				}
 
-type wordCounts []wordCount
-
-func (w wordCounts) Len() int {
-	return len(w)
-}
-
-func (w wordCounts) Less(i, j int) bool {
-	return w[i].count > w[j].count || (w[i].count == w[j].count && w[i].word < w[j].word)
-}
-
-func (w wordCounts) Swap(i, j int) {
-	w[i], w[j] = w[j], w[i]
+			case <-quit:
+				return
+			}
+		}
+		sort.Slice(uniqueWords, func(i, j int) bool {
+			return len(uniqueWords[i]) > len(uniqueWords[j]) || (len(uniqueWords[i]) == len(uniqueWords[j]) && uniqueWords[i] < uniqueWords[j])
+		})
+		longWords <- strings.Join(uniqueWords[:10], ", ")
+	}()
+	return longWords
 }
 
 func main() {
@@ -105,20 +113,7 @@ func main() {
 		pages[i] = downloadPages(quit, urls)
 
 	}
-	results := extractWords(quit, fanning_in_and_out.FanIn(quit, pages...))
-
-	wordCountMap := make(map[string]int)
-	for result := range results {
-		wordCountMap[result] += 1
-	}
-	// 统计出现次数最多的单词
-	var counts = make(wordCounts, 0, len(wordCountMap))
-	for word, count := range wordCountMap {
-		counts = append(counts, wordCount{word, count})
-	}
-	sort.Sort(counts)
-	for i := 0; i < 10; i++ {
-		fmt.Println(counts[i].word, counts[i].count)
-	}
+	results := longestWords(quit, extractWords(quit, fanning_in_and_out.FanIn(quit, pages...)))
+	fmt.Println("Longest words:", <-results)
 
 }
