@@ -2,13 +2,14 @@ package main
 
 import (
 	"fmt"
+	"github.com/neepoo/GoLangExperiments/channel_patterns/broadcasting_to_multiple_goroutine"
 	"io"
 	"net/http"
 	"regexp"
 	"sort"
 	"strings"
 
-	"github.com/neepoo/GoLangExperiments/channel/fanning_in_and_out"
+	"github.com/neepoo/GoLangExperiments/channel_patterns/fanning_in_and_out"
 )
 
 const MAXDOWNLOADER = 20
@@ -104,6 +105,35 @@ func longestWords(quit <-chan struct{}, words <-chan string) <-chan string {
 	return longWords
 }
 
+func frequentWords(quit <-chan struct{}, words <-chan string) <-chan string {
+	mostFrequentWords := make(chan string)
+	go func() {
+		defer close(mostFrequentWords)
+		freqMap := make(map[string]int)
+		freqList := make([]string, 0)
+		moreData, word := true, ""
+		for moreData {
+			select {
+			case word, moreData = <-words:
+				if moreData {
+					if freqMap[word] == 0 {
+						freqList = append(freqList, word)
+					}
+					freqMap[word] += 1
+				}
+			case <-quit:
+				return
+			}
+		}
+		sort.Slice(freqList, func(i, j int) bool {
+			return freqMap[freqList[i]] > freqMap[freqList[j]] ||
+				(freqMap[freqList[i]] == freqMap[freqList[j]] && freqList[i] < freqList[j])
+		})
+		mostFrequentWords <- strings.Join(freqList[:10], ", ")
+	}()
+	return mostFrequentWords
+}
+
 func main() {
 	quit := make(chan struct{})
 	defer close(quit)
@@ -113,7 +143,13 @@ func main() {
 		pages[i] = downloadPages(quit, urls)
 
 	}
-	results := longestWords(quit, extractWords(quit, fanning_in_and_out.FanIn(quit, pages...)))
-	fmt.Println("Longest words:", <-results)
+	words := extractWords(quit, fanning_in_and_out.FanIn(quit, pages...))
+
+	wordsMulti := broadcasting_to_multiple_goroutine.BroadCast(quit, words, 2)
+	longestResults := longestWords(quit, wordsMulti[0])
+	frequentResults := frequentWords(quit, wordsMulti[1])
+
+	fmt.Println("Longest Words: ", <-longestResults)
+	fmt.Println("Most Frequent Words: ", <-frequentResults)
 
 }

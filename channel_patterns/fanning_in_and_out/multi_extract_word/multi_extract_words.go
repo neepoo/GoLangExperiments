@@ -8,7 +8,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/neepoo/GoLangExperiments/channel/fanning_in_and_out"
+	"github.com/neepoo/GoLangExperiments/channel_patterns/fanning_in_and_out"
 )
 
 const MAXDOWNLOADER = 20
