@@ -49,3 +49,26 @@ func (rw *RWMutex) WriteLock() {
 	rw.writerActive = true
 	rw.cond.L.Unlock()
 }
+
+func (rw *RWMutex) ReadUnlock() {
+	rw.cond.L.Lock()
+	rw.readersCounter--
+	//  Since there can only ever be one writer active
+	//at any point in time, we can send a broadcast every time we unlock.
+	// This will wake up
+	//any writers or readers that are currently waiting on the condition variable
+	//  If there are
+	//both readers and writers waiting, a writer will be preferred since the readers will go
+	//back into suspension when the writers’ waiting counter is above
+	if rw.readersCounter == 0 {
+		rw.cond.Broadcast()
+	}
+	rw.cond.L.Unlock()
+}
+
+func (rw *RWMutex) WriteUnlock() {
+	rw.cond.L.Lock()
+	rw.writerActive = false
+	rw.cond.Broadcast()
+	rw.cond.L.Unlock()
+}
