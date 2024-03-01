@@ -1,6 +1,6 @@
 package sync
 
-import "sync"
+import stdsync "sync"
 
 // We could block new readers from acquiring
 //the read lock as soon as a writer calls the WriteLock() function
@@ -20,11 +20,11 @@ type RWMutex struct {
 	writersWaiting int
 	// Indicates if a writer is holding the write lock
 	writerActive bool
-	cond         *sync.Cond
+	cond         *stdsync.Cond
 }
 
 func NewRWMutex() *RWMutex {
-	return &RWMutex{cond: sync.NewCond(new(sync.Mutex))}
+	return &RWMutex{cond: stdsync.NewCond(new(stdsync.Mutex))}
 }
 
 func (rw *RWMutex) ReadLock() {

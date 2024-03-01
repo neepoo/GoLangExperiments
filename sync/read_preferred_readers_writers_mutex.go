@@ -1,6 +1,6 @@
 package sync
 
-import "sync"
+import stdsync "sync"
 
 //To implement our readers–writer mutex, we need a system that, when a goroutine
 //calls ReadLock(), blocks any access to the write part while allowing other goroutines to
@@ -12,9 +12,9 @@ type ReadPreferredRWMutex struct {
 	// count the number of reader goroutines currently in the critical section
 	readersCounter int
 	// Mutex for synchronizing readers access
-	readersLock sync.Mutex
+	readersLock stdsync.Mutex
 	// Mutex for blocking writers access
-	globalLock sync.Mutex
+	globalLock stdsync.Mutex
 }
 
 func (rw *ReadPreferredRWMutex) ReadLock() {
