@@ -9,3 +9,17 @@ func Example_createLargerThanPredicate() {
 	// Output:
 	// [4 5 6]
 }
+
+func Example_partial() {
+	bucky := maleHavaneseSpawner("bucky")
+	rocky := maleHavaneseSpawner("rocky")
+	tipsy := femalePoodleSpawner("tipsy")
+	fmt.Printf("%v\n", bucky)
+	fmt.Printf("%v\n", rocky)
+	fmt.Printf("%v\n", tipsy)
+
+	// Output:
+	// {bucky 1 0}
+	// {rocky 1 0}
+	// {tipsy 3 1}
+}

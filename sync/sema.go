@@ -26,7 +26,7 @@ func (s *Semaphore) Acquire() {
 	for s.permits <= 0 {
 		s.cond.Wait()
 	}
-	s.permits++
+	s.permits--
 	s.cond.L.Unlock()
 }
 
